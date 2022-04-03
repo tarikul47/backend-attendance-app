@@ -3,6 +3,7 @@ const connectDB = require("./db");
 const bcrypt = require("bcrypt");
 const dotenv = require("dotenv");
 const User = require("./models/User");
+const { use } = require("bcrypt/promises");
 const app = express();
 dotenv.config();
 
@@ -11,6 +12,8 @@ app.use(express.json());
 /**
  * Route create here
  */
+
+// register API
 app.post("/register", async (req, res, next) => {
   const { name, email, password } = req.body;
   // if (!name || !email || !password) {
@@ -32,6 +35,25 @@ app.post("/register", async (req, res, next) => {
         .status(201)
         .json({ message: "User created Successfully", user });
     }
+  } catch (e) {
+    next(e);
+  }
+});
+
+// login API
+
+app.post("/login", async (req, res, next) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid Credentails" });
+    }
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: "Invalid Credentails" });
+    }
+    return res.status(200).json({ message: "login Successfully" });
   } catch (e) {
     next(e);
   }
