@@ -1,19 +1,66 @@
 const express = require("express");
+const connectDB = require("./db");
+const bcrypt = require("bcrypt");
+const dotenv = require("dotenv");
+const User = require("./models/User");
 const app = express();
+dotenv.config();
+
+//middleware
+app.use(express.json());
+/**
+ * Route create here
+ */
+app.post("/register", async (req, res, next) => {
+  const { name, email, password } = req.body;
+  // if (!name || !email || !password) {
+  //   return res.status(400).send("message is Invalide");
+  // }
+  try {
+    let user = await User.findOne({ email: email });
+    if (user) {
+      return res.status(400).json({ message: "User already exist" });
+    } else {
+      user = new User({ user, email, password });
+
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync(password, salt);
+      user.password = hash;
+
+      await user.save();
+      return res
+        .status(201)
+        .json({ message: "User created Successfully", user });
+    }
+  } catch (e) {
+    next(e);
+  }
+});
 
 /**
  * root API
  */
-app.get('/', (_, res)=> {
-    const obj = {
-        name: 'tarikul',
-        email: 'tarikul@gmail.com',
-    }
-    //res.send(obj);
-    //res.send(JSON.stringify(obj))
-    res.json(obj);
+app.get("/", (_, res) => {
+  const obj = {
+    name: "tarikul",
+    email: "tarikul@gmail.com",
+  };
+  //res.send(obj);
+  //res.send(JSON.stringify(obj))
+  res.json(obj);
 });
 
-app.listen(4000, () => {
-    console.log('I am listening on 4000');
-} ); 
+// global error
+app.use((err, req, res, next) => {
+  console.log(err);
+  res.status(500).json({ message: "Server Error Occurred" });
+});
+
+connectDB(process.env.MONGO_CONNECTION_STRING)
+  .then(() => {
+    console.log("Database coonceted succesfully");
+    app.listen(4000, () => {
+      console.log("I am listening on 4000");
+    });
+  })
+  .catch((err) => console.log(err));
